@@ -1,5 +1,7 @@
 # https://stackoverflow.com/questions/2148119/how-to-convert-an-xml-string-to-a-dictionary
-from xml.etree import cElementTree as ElementTree
+from typing import Any
+from xml.etree import cElementTree as ET
+
 
 class XmlListConfig(list):
     def __init__(self, aList):
@@ -67,6 +69,34 @@ class XmlDictConfig(dict):
 
 def xml_to_dict(xml_string: str):
     """Converts an XML string into a python dict"""
-    root = ElementTree.XML(xml_string)
+    root = ET.XML(xml_string)
     xml_dict = XmlDictConfig(root)
     return xml_dict
+
+
+def dict_to_xml(dictionary: dict[str, Any], root_tag: str = 'root'):
+    """
+    Converts a dictionary to XML using the lxml module.
+
+    Args:
+    dictionary (dict): The dictionary to convert to XML.
+    root_tag (str): The root tag of the XML document. Default is 'root'.
+
+    Returns:
+    etree: The XML document as an lxml etree object.
+    """
+    root = ET.Element(root_tag)
+    for key, value in dictionary.items():
+        child = ET.SubElement(root, key)
+        if isinstance(value, dict):
+            child.text = '\n' + dict_to_xml(value, key).decode() + '  '
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    child.append(dict_to_xml(item))
+                else:
+                    subchild = ET.SubElement(child, key)
+                    subchild.text = str(item)
+        else:
+            child.text = str(value)
+    return ET.tostring(root, encoding='unicode')
